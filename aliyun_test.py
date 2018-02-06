@@ -70,6 +70,7 @@ flags.DEFINE_integer("task_index", None,
                      "Worker task index, should be >= 0. task_index=0 is "
                      "the master worker task the performs the variable "
                      "initialization ")
+flags.DEFINE_integer ('steps_to_validate', 500,'Steps to validate and print loss')
 
 FLAGS = flags.FLAGS
 
@@ -288,7 +289,7 @@ def main(unused_argv):
       sess.run(sync_init_op)
       sv.start_queue_runners(sess, [chief_queue_runner])
 
-    train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
+    #train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     
     # Perform training
     time_begin = time.time()
@@ -305,11 +306,15 @@ def main(unused_argv):
 
       _, summary, step = sess.run([train_step, summary_op, global_step], feed_dict=train_feed)
       local_step += 1
-      train_writer.add_summary(summary, step)
+      #train_writer.add_summary(summary, step)
+      if step % FLAGS.steps_to_validate == 0:
+        w,b = sess.run([hid_w,hid_b])
+        print("[idx_%d]step: %d/%d, weight[0][0]: %f, biase[0]: %f " 
+          %(FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0]))
 
-      now = time.time()
-      print("%f: Worker %d: training step %d done (global step: %d)" %
-            (now, FLAGS.task_index, local_step, step))
+      #now = time.time()
+      #print("%f: Worker %d: training step %d done (global step: %d)" %
+      #      (now, FLAGS.task_index, local_step, step))
 
       if step >= FLAGS.train_steps:
         break
