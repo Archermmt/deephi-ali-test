@@ -168,7 +168,7 @@ def main(unused_argv):
         hid_w = tf.Variable(
             tf.truncated_normal(
                 [FLAGS.in_dim, FLAGS.hidden_units],
-                stddev=1.0 / IMAGE_PIXELS),
+                stddev=1.0 / FLAGS.in_dim),
             name="hid_w")
         variable_summaries(hid_w)
       with tf.name_scope('bias'):
