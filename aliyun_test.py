@@ -50,7 +50,7 @@ flags.DEFINE_integer("hidden_units", 100,
                      "Number of units in the hidden layer of the NN")
 flags.DEFINE_integer("in_dim",100,"Input dimension of the NN")
 flags.DEFINE_integer("out_dim",10,"Output dimension of the NN")
-flags.DEFINE_integer("train_steps", 20000,
+flags.DEFINE_integer("train_steps", 1000,
                      "Number of (global) training steps to perform")
 flags.DEFINE_integer("batch_size", 100, "Training batch size")
 flags.DEFINE_float("learning_rate", 0.01, "Learning rate")
@@ -291,25 +291,36 @@ def main(unused_argv):
       sv.start_queue_runners(sess, [chief_queue_runner])
 
     train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
-
+    test_writer = tf.summary.FileWriter(FLAGS.log_dir + '/test')
     # Perform training
     time_begin = time.time()
     print("Training begins @ %f" % time_begin)
 
+    local_step = 0
     step = 0
     while True:
+      # Test-set accuracy and record summary
+      if local_step % 10 == 0:
+        fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
+        fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
+        test_feed = {x: fake_data, y_: fake_target}
+        acc, summary = sess.run([accuracy, summary_op], feed_dict=test_feed)
+        test_writer.add_summary(summary, local_step)
+        local_step += 1
+        print("Accuracy at local step %s: %s" % (local_step, acc))
+      else:
+        # Training feed
+        fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
+        fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
+        train_feed = {x: fake_data, y_: fake_target}
 
-      # Training feed
-      fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
-      fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
-      train_feed = {x: fake_data, y_: fake_target}
+        _, summary, step = sess.run([train_step, summary_op, global_step], feed_dict=train_feed)
+        local_step += 1
+        train_writer.add_summary(summary, step)
 
-      _, summary, step = sess.run([train_step, summary_op, global_step], feed_dict=train_feed)
-      #train_writer.add_summary(summary, step)
-
-      now = time.time()
-      print("%f: Worker %d: training step %d done (global step: %d)" %
-            (now, FLAGS.task_index, local_step, step))
+        now = time.time()
+        print("%f: Worker %d: training step %d done (global step: %d)" %
+              (now, FLAGS.task_index, local_step, step))
 
       if step >= FLAGS.train_steps:
         break
@@ -319,6 +330,15 @@ def main(unused_argv):
     training_time = time_end - time_begin
     print("Training elapsed time: %f s" % training_time)
     train_writer.close()
+    test_writer.close()
+    # Validation feed
+    fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
+    fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
+    val_feed = {x: fake_data, y_: fake_target}
+    val_xent = sess.run(cross_entropy, feed_dict=val_feed)
+    print("After %d training step(s), validation cross entropy = %g" %
+          (FLAGS.train_steps, val_xent))
+    print("Test-Accuracy: %2.2f" % sess.run(accuracy, feed_dict=val_feed))
     
     sv.stop()
 
