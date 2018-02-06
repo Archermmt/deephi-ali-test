@@ -291,7 +291,7 @@ def main(unused_argv):
       sv.start_queue_runners(sess, [chief_queue_runner])
 
     train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
-    test_writer = tf.summary.FileWriter(FLAGS.log_dir + '/test')
+    #test_writer = tf.summary.FileWriter(FLAGS.log_dir + '/test')
     # Perform training
     time_begin = time.time()
     print("Training begins @ %f" % time_begin)
@@ -306,7 +306,7 @@ def main(unused_argv):
         #test_feed = {x: fake_data, y_: fake_target}
         #acc, summary = sess.run([accuracy, summary_op], feed_dict=test_feed)
         #test_writer.add_summary(summary, local_step)
-        #local_step += 1
+        local_step += 1
         print("Accuracy at local step %s: None" % (local_step))
       else:
         # Training feed
@@ -330,15 +330,6 @@ def main(unused_argv):
     training_time = time_end - time_begin
     print("Training elapsed time: %f s" % training_time)
     train_writer.close()
-    test_writer.close()
-    # Validation feed
-    #fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
-    #fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
-    #val_feed = {x: fake_data, y_: fake_target}
-    #val_xent = sess.run(cross_entropy, feed_dict=val_feed)
-    #print("After %d training step(s), validation cross entropy = %g" %
-    #      (FLAGS.train_steps, val_xent))
-    print("Test-Accuracy: %2.2f" % sess.run(accuracy, feed_dict=val_feed))
     
     sv.stop()
 
