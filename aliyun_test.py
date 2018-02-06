@@ -301,13 +301,13 @@ def main(unused_argv):
     while True:
       # Test-set accuracy and record summary
       if local_step % 10 == 0:
-        fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
-        fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
-        test_feed = {x: fake_data, y_: fake_target}
-        acc, summary = sess.run([accuracy, summary_op], feed_dict=test_feed)
-        test_writer.add_summary(summary, local_step)
-        local_step += 1
-        print("Accuracy at local step %s: %s" % (local_step, acc))
+        #fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
+        #fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
+        #test_feed = {x: fake_data, y_: fake_target}
+        #acc, summary = sess.run([accuracy, summary_op], feed_dict=test_feed)
+        #test_writer.add_summary(summary, local_step)
+        #local_step += 1
+        print("Accuracy at local step %s: None" % (local_step))
       else:
         # Training feed
         fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
