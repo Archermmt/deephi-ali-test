@@ -104,7 +104,8 @@ def set_ps_worker_from_env():
       raise ValueError("Failed to find Worker hosts info.")
 
 def main(unused_argv):
-
+  set_ps_worker_from_env()
+  '''
   if FLAGS.job_name is None or FLAGS.job_name == "":
     if os.getenv("JOB_NAME") is not None:
       FLAGS.job_name = os.getenv("JOB_NAME")
@@ -130,6 +131,7 @@ def main(unused_argv):
       FLAGS.worker_hosts = os.getenv("WORKER_HOSTS")
     else:
       raise ValueError("Failed to find Worker hosts info.")
+  '''
   ps_spec = FLAGS.ps_hosts.split(",")
   worker_spec = FLAGS.worker_hosts.split(",")
 
@@ -329,8 +331,8 @@ def main(unused_argv):
     while True:
       
       # Training feed
-      fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
-      fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
+      fake_data = np.random.randn(FLAGS.batch_size,FLAGS.in_dim)*2.0
+      fake_target = np.random.randn(FLAGS.batch_size,FLAGS.out_dim)*2.0
       train_feed = {x: fake_data, y_: fake_target}
 
       _, summary, step = sess.run([train_step, summary_op, global_step], feed_dict=train_feed)
