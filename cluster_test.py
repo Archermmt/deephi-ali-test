@@ -185,12 +185,10 @@ def main(_):
           fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
           _, loss_v, step = sess.run([train_op,cross_entropy,global_step], 
             feed_dict={x:fake_data, y_:fake_target})
-          print("[idx_%d]: training step %d done" %
-            (FLAGS.task_index, step))
-          #if step % steps_to_validate == 0:
-          #  w,b = sess.run([hid_w,hid_b])
-          #  print("[idx_%d]step: %d/%d, weight[0][0]: %f, biase[0]: %f, loss: %f " 
-          #    %(FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0],loss_v))
+          if step % steps_to_validate == 0:
+            w,b = sess.run([hid_w,hid_b])
+            print("[idx_%d]step: %d/%d, weight[0][0]: %f, biase[0]: %f, loss: %f " 
+              %(FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0],loss_v))
         
         end_time=time.time()
         print("distributed train use time: "+str(end_time-start_time))

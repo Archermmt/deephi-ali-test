@@ -308,14 +308,11 @@ def main(unused_argv):
       local_step += 1
       #train_writer.add_summary(summary, step)
       if step % FLAGS.steps_to_validate == 0:
+        now = time.time()
         w,b = sess.run([hid_w,hid_b])
-        print("[idx_%d]step: %d/%d, weight[0][0]: %f, biase[0]: %f " 
-          %(FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0]))
-
-      #now = time.time()
-      #print("%f: Worker %d: training step %d done (global step: %d)" %
-      #      (now, FLAGS.task_index, local_step, step))
-
+        print("%f: Worker %d : step: %d/%d, weight[0][0]: %f, biase[0]: %f " 
+          %(now,FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0]))
+        
       if step >= FLAGS.train_steps:
         break
 
