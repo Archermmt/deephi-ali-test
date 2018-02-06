@@ -304,7 +304,7 @@ def main(unused_argv):
       train_feed = {x: fake_data, y_: fake_target}
 
       _, summary, step = sess.run([train_step, summary_op, global_step], feed_dict=train_feed)
-      local_step += 1
+      #local_step += 1
       train_writer.add_summary(summary, step)
 
       now = time.time()
