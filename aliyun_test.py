@@ -71,10 +71,11 @@ flags.DEFINE_integer("task_index", None,
                      "the master worker task the performs the variable "
                      "initialization ")
 flags.DEFINE_integer ('steps_to_validate', 500,'Steps to validate and print loss')
+flags.DEFINE_boolean("use_alienv",False,"Whether to use Aliyun environment")
 
 FLAGS = flags.FLAGS
 
-def main(unused_argv):
+def set_ps_worker_from_env():
 
   if FLAGS.job_name is None or FLAGS.job_name == "":
     if os.getenv("JOB_NAME") is not None:
@@ -101,6 +102,36 @@ def main(unused_argv):
       FLAGS.worker_hosts = os.getenv("WORKER_HOSTS")
     else:
       raise ValueError("Failed to find Worker hosts info.")
+
+def main(unused_argv):
+  set_ps_worker_from_env()
+  '''
+  if FLAGS.job_name is None or FLAGS.job_name == "":
+    if os.getenv("JOB_NAME") is not None:
+      FLAGS.job_name = os.getenv("JOB_NAME")
+    else:
+      raise ValueError("Must specify an explicit `job_name`")
+  if FLAGS.task_index is None or FLAGS.task_index =="":
+    if os.getenv("JOB_INDEX") is not None:
+      FLAGS.task_index = int(os.getenv("JOB_INDEX"))
+    else:
+      raise ValueError("Must specify an explicit `task_index`")
+
+  print("job name = %s" % FLAGS.job_name)
+  print("task index = %d" % FLAGS.task_index)
+
+  #Construct the cluster and start the server
+  if FLAGS.ps_hosts is None or FLAGS.ps_hosts =="":
+    if os.getenv("PS_HOSTS") is not None:
+      FLAGS.ps_hosts = os.getenv("PS_HOSTS")
+    else:
+      raise ValueError("Failed to find PS hosts info.")
+  if FLAGS.worker_hosts is None or FLAGS.worker_hosts =="":
+    if os.getenv("WORKER_HOSTS") is not None:
+      FLAGS.worker_hosts = os.getenv("WORKER_HOSTS")
+    else:
+      raise ValueError("Failed to find Worker hosts info.")
+  '''
   ps_spec = FLAGS.ps_hosts.split(",")
   worker_spec = FLAGS.worker_hosts.split(",")
 
@@ -312,7 +343,7 @@ def main(unused_argv):
         w,b = sess.run([hid_w,hid_b])
         print("%f: Worker %d : step: %d/%d, weight[0][0]: %f, biase[0]: %f " 
           %(now,FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0]))
-        
+
       if step >= FLAGS.train_steps:
         break
 
