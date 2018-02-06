@@ -104,8 +104,7 @@ def set_ps_worker_from_env():
       raise ValueError("Failed to find Worker hosts info.")
 
 def main(unused_argv):
-  set_ps_worker_from_env()
-  '''
+
   if FLAGS.job_name is None or FLAGS.job_name == "":
     if os.getenv("JOB_NAME") is not None:
       FLAGS.job_name = os.getenv("JOB_NAME")
@@ -131,7 +130,6 @@ def main(unused_argv):
       FLAGS.worker_hosts = os.getenv("WORKER_HOSTS")
     else:
       raise ValueError("Failed to find Worker hosts info.")
-  '''
   ps_spec = FLAGS.ps_hosts.split(",")
   worker_spec = FLAGS.worker_hosts.split(",")
 
