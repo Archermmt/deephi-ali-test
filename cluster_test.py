@@ -122,11 +122,7 @@ def main(_):
   server = tf.train.Server(cluster,job_name=FLAGS.job_name,task_index=FLAGS.task_index)
 
   issync = FLAGS.issync
-  #name of each node
-  worker_device = '/job:%s/task:%d' % (FLAGS.job_name, FLAGS.task_index)
-  node_ids=FLAGS.device_ids.split(",")
-  available_devices = [worker_device + "/gpu:"+idx for idx in node_ids]
-    
+  
   if FLAGS.job_name == "ps":
     server.join()
   elif FLAGS.job_name == "worker":
