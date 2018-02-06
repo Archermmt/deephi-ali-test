@@ -349,7 +349,7 @@ def main(unused_argv):
     print("Training ends @ %f" % time_end)
     training_time = time_end - time_begin
     print("Training elapsed time: %f s" % training_time)
-    train_writer.close()
+    #train_writer.close()
     
     sv.stop()
 
