@@ -33,7 +33,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 
 flags = tf.app.flags
-flags.DEFINE_string("log_dir", "/tmp/mnist-log",
+flags.DEFINE_string("log_dir", "./checkpoint",
                     "Directory for storing traing result data")
 flags.DEFINE_boolean("log_device_placement", True,
                      "Enable log of training device placement information")
@@ -48,7 +48,7 @@ flags.DEFINE_integer("hidden_units", 100,
                      "Number of units in the hidden layer of the NN")
 flags.DEFINE_integer("in_dim",100,"Input dimension of the NN")
 flags.DEFINE_integer("out_dim",10,"Output dimension of the NN")
-flags.DEFINE_integer("train_steps", 1000,
+flags.DEFINE_integer("train_steps", 10000,
                      "Number of (global) training steps to perform")
 flags.DEFINE_integer("batch_size", 100, "Training batch size")
 flags.DEFINE_float("learning_rate", 0.01, "Learning rate")
@@ -75,37 +75,8 @@ flags.DEFINE_boolean("use_alienv",False,"Whether to use Aliyun environment")
 
 FLAGS = flags.FLAGS
 
-def set_ps_worker_from_env():
-
-  if FLAGS.job_name is None or FLAGS.job_name == "":
-    if os.getenv("JOB_NAME") is not None:
-      FLAGS.job_name = os.getenv("JOB_NAME")
-    else:
-      raise ValueError("Must specify an explicit `job_name`")
-  if FLAGS.task_index is None or FLAGS.task_index =="":
-    if os.getenv("JOB_INDEX") is not None:
-      FLAGS.task_index = int(os.getenv("JOB_INDEX"))
-    else:
-      raise ValueError("Must specify an explicit `task_index`")
-
-  print("job name = %s" % FLAGS.job_name)
-  print("task index = %d" % FLAGS.task_index)
-
-  #Construct the cluster and start the server
-  if FLAGS.ps_hosts is None or FLAGS.ps_hosts =="":
-    if os.getenv("PS_HOSTS") is not None:
-      FLAGS.ps_hosts = os.getenv("PS_HOSTS")
-    else:
-      raise ValueError("Failed to find PS hosts info.")
-  if FLAGS.worker_hosts is None or FLAGS.worker_hosts =="":
-    if os.getenv("WORKER_HOSTS") is not None:
-      FLAGS.worker_hosts = os.getenv("WORKER_HOSTS")
-    else:
-      raise ValueError("Failed to find Worker hosts info.")
-
 def main(unused_argv):
-  set_ps_worker_from_env()
-  '''
+
   if FLAGS.job_name is None or FLAGS.job_name == "":
     if os.getenv("JOB_NAME") is not None:
       FLAGS.job_name = os.getenv("JOB_NAME")
@@ -131,7 +102,6 @@ def main(unused_argv):
       FLAGS.worker_hosts = os.getenv("WORKER_HOSTS")
     else:
       raise ValueError("Failed to find Worker hosts info.")
-  '''
   ps_spec = FLAGS.ps_hosts.split(",")
   worker_spec = FLAGS.worker_hosts.split(",")
 
@@ -245,17 +215,9 @@ def main(unused_argv):
 
       train_step = opt.minimize(cross_entropy, global_step=global_step)
 
-    # Accuracy
-    with tf.name_scope('accuracy'):
-      with tf.name_scope('correct_prediction'):
-        correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
-      with tf.name_scope('accuracy'):
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))  
-    tf.summary.scalar('accuracy', accuracy)
-
     # Merge all the summaries and write them out to /tmp/mnist-data/log by defalut
     summary_op = tf.summary.merge_all()
-        
+    
     if FLAGS.sync_replicas:
       local_init_op = opt.local_step_init_op
       if is_chief:
@@ -320,8 +282,6 @@ def main(unused_argv):
       sess.run(sync_init_op)
       sv.start_queue_runners(sess, [chief_queue_runner])
 
-    #train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
-    
     # Perform training
     time_begin = time.time()
     print("Training begins @ %f" % time_begin)
@@ -331,8 +291,8 @@ def main(unused_argv):
     while True:
       
       # Training feed
-      fake_data = np.random.randn(FLAGS.batch_size,FLAGS.in_dim)*2.0
-      fake_target = np.random.randn(FLAGS.batch_size,FLAGS.out_dim)*2.0
+      fake_data = np.random.randn(FLAGS.batch_size,FLAGS.in_dim)
+      fake_target = np.random.randn(FLAGS.batch_size,FLAGS.out_dim)
       train_feed = {x: fake_data, y_: fake_target}
 
       _, summary, step = sess.run([train_step, summary_op, global_step], feed_dict=train_feed)
@@ -351,7 +311,6 @@ def main(unused_argv):
     print("Training ends @ %f" % time_end)
     training_time = time_end - time_begin
     print("Training elapsed time: %f s" % training_time)
-    #train_writer.close()
     
     sv.stop()
 
