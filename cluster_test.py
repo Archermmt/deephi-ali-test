@@ -27,6 +27,17 @@ tf.app.flags.DEFINE_integer("batch_size",         20,      "Training batch size"
 learning_rate = FLAGS.learning_rate
 steps_to_validate = FLAGS.steps_to_validate
 
+def create_done_queue(i,num_worker):
+  """Queue used to signal death for i'th ps shard. Intended to have 
+  all workers enqueue an item onto it to signal doneness."""
+  
+  with tf.device("/job:ps/task:%d" % (i)):
+    return tf.FIFOQueue(num_worker, tf.int32, shared_name="done_queue"+
+                        str(i))
+  
+def create_done_queues(num_ps,num_worker):
+  return [create_done_queue(i,num_worker) for i in range(num_ps)]
+
 def variable_summaries(var):
   """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
   with tf.name_scope('summaries'):
@@ -117,9 +128,20 @@ def main(_):
   server = tf.train.Server(cluster,job_name=FLAGS.job_name,task_index=FLAGS.task_index)
 
   issync = FLAGS.issync
+  num_worker=len(worker_hosts)
+  num_ps=len(ps_hosts)
   
   if FLAGS.job_name == "ps":
-    server.join()
+    #server.join()
+    sess = tf.Session(server.target)
+    queue = create_done_queue(FLAGS.task_index,num_worker)
+  
+    # wait until all workers are done
+    for i in range(num_worker):
+      sess.run(queue.dequeue())
+      print("ps %d received done %d" % (FLAGS.task_index, i))
+     
+    print("ps %d: quitting"%(FLAGS.task_index))
   elif FLAGS.job_name == "worker":
     with tf.device(tf.train.replica_device_setter(
                     worker_device="/job:worker/task:%d" % FLAGS.task_index,
@@ -160,6 +182,11 @@ def main(_):
       saver = tf.train.Saver()
       summary_op = tf.summary.merge_all()
  
+      enq_ops = []
+      for q in create_done_queues(num_ps,num_worker):
+        qop = q.enqueue(1)
+        enq_ops.append(qop)
+
       sv = tf.train.Supervisor(is_chief=(FLAGS.task_index == 0),
                               logdir="./checkpoint/",
                               init_op=init_op,
@@ -167,15 +194,15 @@ def main(_):
                               saver=saver,
                               global_step=global_step,
                               save_model_secs=600)
-
+      
+      start_time=time.time()
       with sv.prepare_or_wait_for_session(server.target) as sess:
-        start_time=time.time()
         #if sync mode:
         if FLAGS.task_index == 0 and issync:
           sv.start_queue_runners(sess, [chief_queue_runner])
           sess.run(init_token_op)
         step = 0
-        while  step < FLAGS.train_steps:
+        while  step < FLAGS.train_steps and not sv.should_stop():
           fake_data = np.random.rand(FLAGS.batch_size,FLAGS.in_dim)
           fake_target = np.random.rand(FLAGS.batch_size,FLAGS.out_dim)
           _, loss_v, step = sess.run([train_op,cross_entropy,global_step], 
@@ -185,9 +212,13 @@ def main(_):
             print("[idx_%d]step: %d/%d, weight[0][0]: %f, biase[0]: %f, loss: %f " 
               %(FLAGS.task_index,step,FLAGS.train_steps,w[0][0],b[0],loss_v))
         
-        end_time=time.time()
-        print("distributed train use time: "+str(end_time-start_time))
-      sv.stop()
+        for op in enq_ops:
+          sess.run(op)
+
+      sv.request_stop()
+      end_time=time.time()
+      print("distributed train use time: "+str(end_time-start_time))
+      
 
 def loss(label, pred):
   return tf.square(label - pred)
